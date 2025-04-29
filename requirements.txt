@@ -1,0 +1,3 @@
+pdflatex
+texsoup
+#miktex || texlive
