@@ -77,6 +77,34 @@ def compile_tex(file_path: Path | str, open_pdf: bool = True,
     finally:
         os.chdir(original_cwd)
 
+def compile_tex_from_string(tex: str, ** kwargs):
+    """
+    Compiles a LaTeX document provided as a string and handles optional compilation settings.
+
+    This function writes the LaTeX string to a temporary `.tex` file, compiles it using the `compile_tex`
+    function, and deletes the temporary file after the compilation process.
+
+    Args:
+        tex: The LaTeX document content as a string.
+        **kwargs: Additional keyword arguments passed to the `compile_tex` function. These include:
+            - open_pdf (bool): Whether to open the generated PDF after compilation (default: True).
+            - keep_temp (bool): Whether to keep temporary files (default: False).
+            - keep_pdf (bool): Whether to keep the generated PDF file (default: False).
+            - output_dir (str | Path | None): The directory where output files should be stored (default: None).
+            - delete_dellay (float): Delay in seconds before deleting the generated PDF file (default: 0.5).
+
+    Raises:
+        Exception: If there are errors during the compilation process.
+    """
+    temp = Path("temp.tex")
+
+    with open(temp, "w") as f:
+        f.write(tex)
+
+    compile_tex(temp, **kwargs)
+
+    temp.unlink()
+
 def open_file(file_path: Path | str):
     """
     Opens a file specified by the given file path in the default program associated

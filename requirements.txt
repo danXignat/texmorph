@@ -1,3 +1,17 @@
+#latex
+#miktex(win) || texlive(linux)
 pdflatex
 texsoup
-#miktex || texlive
+pydantic
+rich
+bidict
+bibtexparser
+#ml pipeline
+spacy
+
+#rag pipeline
+llama-index-llms-groq
+llama-index
+llama-index-embeddings-huggingface
+dotenv
+#llama-index-embeddings-instructor
