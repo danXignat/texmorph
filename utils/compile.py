@@ -11,7 +11,8 @@ from utils.dev_tools import compiling_timer
 @compiling_timer
 def compile_tex(file_path: Path | str, open_pdf: bool = True,
                 keep_temp: bool = False, keep_pdf: bool = False,
-                output_dir: Path | str | None = None, delete_dellay: float = .5) -> None:
+                output_dir: Path | str | None = None, delete_dellay: float = .5,
+                use_bibtex: bool = False) -> None:
     """
     Compile a LaTeX file and open the resulting PDF.
 
@@ -22,6 +23,8 @@ def compile_tex(file_path: Path | str, open_pdf: bool = True,
         keep_pdf: Whether to keep the PDF file
         output_dir: Directory for output files. If None, uses the same directory as the .tex file
                    Can be absolute or relative to the current working directory.
+        use_bibtex: Whether to use BibTeX for bibliography processing
+        delete_dellay: Time to wait before deleting the PDF file
     """
     # Get absolute paths for everything to avoid confusion
     file_path = Path(file_path).resolve()  # Get absolute path
@@ -33,25 +36,30 @@ def compile_tex(file_path: Path | str, open_pdf: bool = True,
     if check_pdflatex()[0] == False:
         raise Exception("pdflatex not found. Please install it.")
 
+    if use_bibtex and not check_bibtex()[0]:
+        raise Exception("bibtex not found. Please install it.")
+
     file_dir = file_path.parent
     file_name = file_path.stem
 
     if output_dir is not None:
         output_dir = (original_cwd / Path(output_dir)).resolve()
         os.makedirs(output_dir, exist_ok=True)
-
         output_arg = ['-output-directory', str(output_dir)]
         pdf_path = output_dir / f"{file_name}.pdf"
+        work_dir = output_dir
     else:
-        output_arg = ['-output-directory', str(original_cwd)]
-        pdf_path = original_cwd / f"{file_name}.pdf"
+        output_arg = []  # No output directory specified, use file_dir
+        pdf_path = file_dir / f"{file_name}.pdf"
+        work_dir = file_dir
 
     try:
         os.chdir(file_dir)
 
+        # First pdflatex run to generate aux files
         try:
             result = subprocess.run(
-                ['pdflatex', '-interaction=nonstopmode'] + output_arg + [file_name + ".tex"],
+                ['pdflatex', '-interaction=nonstopmode'] + output_arg + [file_path],
                 capture_output=True, text=True, check=False)
 
             if result.returncode != 0:
@@ -59,14 +67,50 @@ def compile_tex(file_path: Path | str, open_pdf: bool = True,
 
         except subprocess.CalledProcessError as e:
             error_output = e.stdout if e.stdout else "No error message available."
-            raise Exception(f"Compilation failed! Error output: {error_output}")
+            raise Exception(f"First compilation failed! Error output: {error_output}")
+
+        # BibTeX run if requested
+        if use_bibtex:
+            try:
+                # Change to output directory if specified, as that's where the .aux file is
+                if output_dir:
+                    os.chdir(output_dir)
+
+                result = subprocess.run(
+                    ['bibtex', file_name],
+                    capture_output=True, text=True, check=False)
+
+                # Return to file directory for subsequent pdflatex runs
+                if output_dir:
+                    os.chdir(file_dir)
+
+                if result.returncode != 0:
+                    raise Exception(result.stdout)
+
+            except subprocess.CalledProcessError as e:
+                error_output = e.stdout if e.stdout else "No error message available."
+                raise Exception(f"BibTeX compilation failed! Error output: {error_output}")
+
+            # Two more pdflatex runs to resolve references
+            for run in range(2):
+                try:
+                    result = subprocess.run(
+                        ['pdflatex', '-interaction=nonstopmode'] + output_arg + [file_path],
+                        capture_output=True, text=True, check=False)
+
+                    if result.returncode != 0:
+                        raise Exception(result.stdout)
+
+                except subprocess.CalledProcessError as e:
+                    error_output = e.stdout if e.stdout else "No error message available."
+                    raise Exception(f"LaTeX compilation run {run+2} failed! Error output: {error_output}")
 
         if open_pdf and pdf_path.exists():
             open_file(pdf_path)
 
         if not keep_temp:
-            for ext in ['.aux', '.log', '.out', '.toc', '.lof', '.lot']:
-                temp_file = Path(output_arg[1]) / f"{file_name}{ext}" if not output_dir else output_dir / f"{file_name}{ext}"
+            for ext in ['.aux', '.log', '.out', '.toc', '.lof', '.lot', '.bbl', '.blg', '.bcf', '.run.xml']:
+                temp_file = work_dir / f"{file_name}{ext}"
                 if temp_file.exists():
                     temp_file.unlink()
 
@@ -122,7 +166,16 @@ def open_file(file_path: Path | str):
         case _:
             subprocess.run(['xdg-open', file_path])
 
-def check_pdflatex():
+def check_bibtex() -> tuple[bool, str]:
+    """Check if bibtex is installed and return its version."""
+    try:
+        result = subprocess.run(['bibtex', '--version'],
+                                capture_output=True, text=True, check=False)
+        return True, result.stdout.strip()
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return False, "BibTeX not found"
+
+def check_pdflatex() -> tuple[bool, str | None]:
     """
     Checks the availability of the `pdflatex` executable and its distribution.
 

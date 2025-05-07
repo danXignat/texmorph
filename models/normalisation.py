@@ -1,9 +1,9 @@
-from typing import Optional, Any
+from typing import Optional, Any, List
 
 import datetime as dt
 from pydantic import BaseModel, Field
 
-from models.types import DocumentClassType, FormatType
+from models.types import FormatType
 
 class NormalisedNode(BaseModel):
     """Base class for normalized elements"""
@@ -31,7 +31,7 @@ class Package(NormalisedNode):
     options : list[str] = Field(default_factory=list)
 
 class DocumentClass(NormalisedNode):
-    type    : DocumentClassType
+    type    : FormatType
     options : list[str] = Field(default_factory=list)
 
 class Author(NormalisedNode):
@@ -77,16 +77,16 @@ class Table(NormalisedNode):
     Represents a table in a normalized format.
 
     Attributes:
-        cells (list[list[TableCell]]): A 2D list of TableCell objects, representing the structure of the table's rows and columns.
-        caption (str | None): An optional caption for the table.
-        content (str | None): Optional content or description of the table.
-        label (str | None): An optional label for referencing the table.
+        rows (List[List[TableCell]]): List of Lists of TableCell objects representing the rows of the table.
+        caption (Optional[str]): An optional caption for the table.
+        content (Optional[str]): Optional content or description of the table.
+        label (Optional[str]): An optional label for referencing the table.
     """
-    cells: list[list[TableCell]]
+    rows    : List[List[TableCell]]
 
-    caption: str | None = None
-    content: str | None = None
-    label: str | None = None
+    caption : Optional[str] = None
+    content : Optional[str] = None
+    label   : Optional[str] = None
 #------------------------------
 
 class Abstract(NormalisedNode):

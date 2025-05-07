@@ -2,13 +2,14 @@ from unittest import case
 
 from TexSoup import TexNode
 
-from models.types import FormatType, DocumentClassType
-from models.elements import *
+from models.types import FormatType
+from models.normalisation import *
 
 from core.mapping import *
 import utils.extraction as extraction
-from formats.IFormat import IEEEFormat, SpringerNatureFormat, ArticleFormat
+from formats.IFormat import IEEEFormat, SNFormat, FORMATS, IFormat
 from rag.extraction import RAGExtractor
+from config.settings import Settings
 
 class Normaliser:
     def __init__(self, format_type: FormatType):
@@ -16,13 +17,13 @@ class Normaliser:
 
         match format_type:
             case FormatType.ARTICLE:
-                self._format = ArticleFormat()
+                pass
 
             case FormatType.IEEE:
                 self._format = IEEEFormat()
 
             case FormatType.SPRINGER:
-                self._format = SpringerNatureFormat()
+                self._format = SNFormat()
 
             case _:
                 raise ValueError(f"Unsupported format type: {format_type}")
@@ -104,7 +105,7 @@ class Normaliser:
     def _normalise_document_class(self, node: TexNode) -> NormalisedNode:
         """Normalise a LaTeX document class node."""
         return DocumentClass(
-            type=DocumentClassType(extraction.get_required(node)[0]),
+            type=FormatType(extraction.get_required(node)[0]),
             options=extraction.get_optionals(node),
             original_content=str(node),
         )
@@ -347,7 +348,9 @@ class Normaliser:
 
 class Denormaliser:
     def __init__(self, format_type: FormatType):
-        self._format_type = format_type
+        self.format_type = format_type
+
+        self.format: IFormat = FORMATS[format_type]()
 
     def denormalise(self, node: 'NormalisedNode') -> str:
         """
@@ -390,10 +393,9 @@ class Denormaliser:
         return f"\\documentclass[{','.join(node.options)}]{{{node.type.value}}}"
 
     def _denormalise_author(self, node: Author) -> str:
-        return (f"\\author{{{node.name}}}"
-                + (f"\\\\{node.affiliation}" if node.affiliation else "")
-                + (f"\\\\{node.email}" if node.email else "")
-                + (f"\\\\{node.orcid}" if node.orcid else ""))
+        data: dict= node.model_dump(exclude_none=True)
+
+        return Settings.get("author").render(**data)
 
     def _denormalise_title(self, node: Title) -> str:
         return (f"\\title{{{node.title}}}"
@@ -426,14 +428,14 @@ class Denormaliser:
                         for cell in row
                     ]
                 )
-                for row in node.cells
+                for row in node.rows
             ]
         )
         return (f"\\begin{{table}}[]\n"
                 f"\\centering\n"
                 + (f"\\caption{{{node.caption}}}\n" if node.caption else "")
                 + (f"\\label{{{node.label}}}\n" if node.label else "")
-                + f"\\begin{{tabular}}{{{"|".join(["l"] * len(node.cells[0]))}}}\n"
+                + f"\\begin{{tabular}}{{{"|".join(["l"] * len(node.rows[0]))}}}\n"
                 + f"{rows}\n"
                 + f"\\end{{tabular}}\n"
                 + f"\\end{{table}}")

@@ -5,7 +5,7 @@ from typing import override, Union
 from core.CIRTree import CIRTree
 from models.types import FormatType, ElementType
 from normalisation import Normaliser, Denormaliser
-from models.elements import *
+from models.normalisation import *
 
 class Visitor(ABC):
     @abstractmethod
@@ -18,8 +18,8 @@ class Visitor(ABC):
 
 class ASTVisitor(Visitor):
     def __init__(self, normaliser: Normaliser):
-        self._normaliser    : Normaliser = normaliser
-        self._cir_tree      : CIRTree | None = None
+        self._normaliser    : Normaliser            = normaliser
+        self._cir_tree      : CIRTree | None        = None
         self._curr_node     : NormalisedNode | None = None
 
     @override
@@ -102,9 +102,9 @@ class ASTVisitor(Visitor):
 
 class CIRVisitor(Visitor):
     def __init__(self, denormaliser: Denormaliser, cir: CIRTree):
-        self._cir_tree      : CIRTree = cir
-        self._denormaliser  : Denormaliser      = denormaliser
-        self._contents      : list[str] = self._build_preamble()
+        self._cir_tree      : CIRTree       = cir
+        self._denormaliser  : Denormaliser  = denormaliser
+        self._contents      : list[str]     = self._build_preamble()
         # self._ast_tree      : ts.TexSoup | None = None
         # self._curr_node     : ts.TexNode | None = None
 
@@ -139,7 +139,8 @@ class CIRVisitor(Visitor):
         if self._cir_tree.abstract is not None:
             preamble.append(self._denormaliser.denormalise(self._cir_tree.abstract))
 
-        preamble.extend([self._denormaliser.denormalise(p) for p in self._cir_tree.packages])
+        # preamble.extend([self._denormaliser.denormalise(p) for p in self._cir_tree.packages])
+        preamble.extend([p.render() for p in self._denormaliser.format.packages])
         preamble.extend([self._denormaliser.denormalise(p) for p in self._cir_tree.authors])
 
         return preamble

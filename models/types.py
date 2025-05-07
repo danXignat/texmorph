@@ -7,19 +7,11 @@ class SectionLevelType(IntEnum):
     SUBSUBSECTION: int = 3
     PARAGRAPH    : int = 4
 
-class DocumentClassType(StrEnum):
-    """Supported LaTeX document classes"""
+class FormatType(Enum):
+    """"""
     ARTICLE     : str = "article"
     IEEE        : str = "IEEEtran"
     SPRINGER    : str = "sn-jn"
-    # ACM: str = "acmart"
-    # ELSEVIER: str = "elsarticle"
-
-class FormatType(Enum):
-    """"""
-    ARTICLE: str = "article"
-    IEEE: str = "IEEE"
-    SPRINGER: str = "Springer Nature"
 
 class ElementType(StrEnum):
     """Types of elements in LaTeX documents"""

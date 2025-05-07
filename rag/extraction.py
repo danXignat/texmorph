@@ -7,7 +7,7 @@ import dotenv
 import json
 
 from typing import Type
-from models.elements import NormalisedNode
+from models.normalisation import NormalisedNode
 
 from models.types import ElementType
 
@@ -36,7 +36,7 @@ RETURN ONLY VALID JSON DATA WITH NO SURROUNDING TEXT:
 """)
 
 class RAGExtractor:
-    def __init__(self, llm_model: str = "gemma2-9b-it", embed_model: str = None, temperature: float=0):
+    def __init__(self, llm_model: str = "meta-llama/llama-4-maverick-17b-128e-instruct", embed_model: str = None, temperature: float=0):
         dotenv.load_dotenv()
         api_key = os.getenv("GROQ_API_KEY")
         assert api_key is not None, "GROQ_API_KEY environment variable not set."
@@ -66,8 +66,8 @@ class RAGExtractor:
 
         j = data[left:right+1]
 
-        with open("eror.json", "w") as f:
-            f.write(j)
+        # with open("eror.json", "w") as f:
+        #     f.write(j)
 
         parsed_json = json.loads(j)
 

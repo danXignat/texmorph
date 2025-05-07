@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Any
 
-from models.elements import *
+from models.normalisation import *
 
 
 class CIRTree(BaseModel):
